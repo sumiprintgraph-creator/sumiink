@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SUMI 墨 — Coming Soon</title>
-<link rel="icon" type="image/svg+xml" href="assets/logos/sumi-logo-master.svg">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%23B22222' /%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='serif'%3E墨%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;900&family=Noto+Serif+JP:wght@400&display=swap" rel="stylesheet">
 <style>
@@ -249,6 +249,80 @@
     line-height: 1.6;
   }
 
+  .input-error {
+    display: none;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--red);
+    letter-spacing: 0.04em;
+  }
+
+  /* Dialog overlay */
+  .dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,20,16,0.55);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .dialog-overlay.is-open {
+    display: flex;
+  }
+  .dialog {
+    background: var(--ivory);
+    max-width: 380px;
+    width: calc(100% - 48px);
+    padding: 40px 32px 32px;
+    text-align: center;
+    animation: fadeUp 0.35s ease both;
+  }
+  .dialog-hanko {
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid var(--red);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--red);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 14px;
+    margin: 0 auto 20px;
+  }
+  .dialog h3 {
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+  }
+  .dialog p {
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #4a4540;
+    margin-bottom: 28px;
+  }
+  .dialog-close {
+    border: 1.5px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .dialog-close:hover {
+    background: var(--ink);
+    color: var(--ivory);
+  }
+
 
   .social-section {
     text-align: center;
@@ -360,12 +434,10 @@
   <p class="sub">Lascia la tua mail — ti avvisiamo noi quando siamo pronti. Nessuno spam, solo il messaggio che conta.</p>
 
   <div class="form-row" id="form-row">
-    <input type="email" id="email-input" placeholder="la tua email" required>
+    <input type="email" id="email-input" placeholder="la tua email">
     <button onclick="handleSubmit()">Avvisami</button>
   </div>
-  <div class="success-msg" id="success-msg">
-    Grazie per l'interesse — teniamoci aggiornati.
-  </div>
+  <p class="input-error" id="input-error">L'indirizzo email non è valido — ricontrolla e riprova.</p>
   <p class="form-note">Niente spam. Solo il messaggio quando siamo pronti.</p>
 </section>
 
@@ -404,12 +476,42 @@
 </footer>
 
 <script>
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+}
+
+function showError(msg) {
+  var m = msg || "L’indirizzo email non è valido — ricontrolla e riprova.";
+  document.getElementById('input-error').textContent = m;
+  document.getElementById('email-input').style.outline = '1px solid #B22222';
+  document.getElementById('input-error').style.display = 'block';
+}
+
+function clearError() {
+  document.getElementById('email-input').style.outline = '';
+  document.getElementById('input-error').style.display = 'none';
+}
+
+function openDialog() {
+  document.getElementById('dialog-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDialog(e) {
+  if (e && e.target !== document.getElementById('dialog-overlay') && e.type === 'click') return;
+  document.getElementById('dialog-overlay').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
 function handleSubmit() {
-  const email = document.getElementById('email-input').value;
-  if (!email || !email.includes('@')) {
-    document.getElementById('email-input').style.outline = '1px solid #B22222';
+  const email = document.getElementById('email-input').value.trim();
+
+  if (!isValidEmail(email)) {
+    showError();
     return;
   }
+  clearError();
+
   fetch('https://connect.mailerlite.com/api/subscribers', {
     method: 'POST',
     headers: {
@@ -420,15 +522,30 @@ function handleSubmit() {
   }).then(function(r) {
     if (r.ok || r.status === 201 || r.status === 200) {
       document.getElementById('form-row').style.display = 'none';
-      document.getElementById('success-msg').style.display = 'block';
+      openDialog();
     } else {
-      document.getElementById('email-input').style.outline = '1px solid #B22222';
+      showError("Errore nell’invio — riprova tra qualche istante.");
     }
   }).catch(function() {
-    document.getElementById('email-input').style.outline = '1px solid #B22222';
+    showError("Errore nell’invio — riprova tra qualche istante.");
   });
 }
+
+// Close dialog on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeDialog();
+});
 </script>
+
+<!-- Success dialog -->
+<div class="dialog-overlay" id="dialog-overlay" onclick="closeDialog(event)">
+  <div class="dialog">
+    <div class="dialog-hanko">墨</div>
+    <h3>Ci siamo.</h3>
+    <p>Sei nella lista — ti scriviamo non appena apriamo.<br>Grazie per l'interesse in SUMI.</p>
+    <button class="dialog-close" onclick="closeDialog()">Chiudi</button>
+  </div>
+</div>
 
 </body>
 </html>
