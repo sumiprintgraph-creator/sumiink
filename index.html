@@ -328,11 +328,19 @@
 function handleSubmit() {
   const email = document.getElementById('email-input').value;
   if (!email || !email.includes('@')) {
-    document.getElementById('email-input').style.border = '1px solid ' + getComputedStyle(document.documentElement).getPropertyValue('--red');
+    document.getElementById('email-input').style.outline = '1px solid #B22222';
     return;
   }
-  document.getElementById('form-row').style.display = 'none';
-  document.getElementById('success-msg').style.display = 'block';
+  fetch('https://formspree.io/f/xnjlowra', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  }).then(function() {
+    document.getElementById('form-row').style.display = 'none';
+    document.getElementById('success-msg').style.display = 'block';
+  }).catch(function() {
+    document.getElementById('email-input').style.outline = '1px solid #B22222';
+  });
 }
 </script>
 
